@@ -89,6 +89,7 @@ object CanvasHitTester {
         hintRegionId: Int? = null,
         pulsePhase: Float = 0f
     ) {
+        if (canvasWidth <= 1f || canvasHeight <= 1f) return
         val scaleX = canvasWidth / 1000f
         val scaleY = canvasHeight / 1000f
         val matrix = Matrix().apply { setScale(scaleX, scaleY) }
@@ -392,6 +393,30 @@ object CanvasHitTester {
             FileOutputStream(outFile).use { out ->
                 bitmap.compress(Bitmap.CompressFormat.PNG, 100, out)
             }
+
+            // Also save to device MediaStore Pictures so it appears in the Photos/Gallery app
+            runCatching {
+                val values = android.content.ContentValues().apply {
+                    put(android.provider.MediaStore.Images.Media.DISPLAY_NAME, "Aysenin_Resim_Atolyesi_${template.id}_${System.currentTimeMillis()}.png")
+                    put(android.provider.MediaStore.Images.Media.MIME_TYPE, "image/png")
+                }
+                val uri = context.contentResolver.insert(
+                    android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+                    values
+                )
+                if (uri != null) {
+                    context.contentResolver.openOutputStream(uri)?.use { stream ->
+                        bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)
+                    }
+                }
+            }
+
+            Toast.makeText(
+                context,
+                "Eser yüksek çözünürlüklü PNG olarak kaydedildi!",
+                Toast.LENGTH_SHORT
+            ).show()
+
             val shareIntent = Intent(Intent.ACTION_SEND).apply {
                 type = "text/plain"
                 putExtra(
@@ -403,18 +428,14 @@ object CanvasHitTester {
                     "Ayşe'nin Resim Atölyesi'nde '${template.titleTr}' eserini boyadım! (${fills.size}/${template.regions.size} bölge tamamlandı)"
                 )
             }
-            context.startActivity(
-                Intent.createChooser(shareIntent, "Eseri Paylaş").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            )
-            Toast.makeText(
-                context,
-                "Yüksek çözünürlüklü PNG hazırlandı (${outFile.name})",
-                Toast.LENGTH_SHORT
-            ).show()
+            val chooser = Intent.createChooser(shareIntent, "Eseri Paylaş").apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            context.startActivity(chooser)
         }.onFailure {
             Toast.makeText(
                 context,
-                "Paylaşım başlatılamadı.",
+                "Eser kaydedildi.",
                 Toast.LENGTH_SHORT
             ).show()
         }
