@@ -1,0 +1,6 @@
+{
+  "name": "Ayşe'nin Resim Atölyesi",
+  "description": "Katmanlı vektör illüstrasyonlar, serbest fırça araçları, sayısal boyama modu ve kişisel sanat galerisi içeren profesyonel boyama stüdyosu.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

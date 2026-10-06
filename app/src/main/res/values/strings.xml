@@ -1,0 +1,37 @@
+<resources>
+    <string name="app_name">Ayşe\'nin Resim Atölyesi</string>
+    <string name="nav_studio">Atölye</string>
+    <string name="nav_gallery">Galerim</string>
+    <string name="nav_palettes">Paletler</string>
+    <string name="nav_achievements">Başarılar</string>
+
+    <string name="studio_subtitle">Profesyonel Dijital Boyama ve Sanat Stüdyosu</string>
+    <string name="daily_inspiration">Günün İlham Eseri</string>
+    <string name="start_coloring">Boyamaya Başla</string>
+    <string name="continue_coloring">Devam Et</string>
+    <string name="completed_badge">Tamamlandı</string>
+
+    <string name="mode_smart_fill">Akıllı Dolgu</string>
+    <string name="mode_number_fill">Sayılarla</string>
+    <string name="mode_free_brush">Fırça</string>
+
+    <string name="tool_undo">Geri Al</string>
+    <string name="tool_redo">İleri Al</string>
+    <string name="tool_hint">İpucu</string>
+    <string name="tool_eyedropper">Damlalık</string>
+    <string name="tool_timelapse">Canlandır</string>
+    <string name="tool_reset_zoom">Sıfırla</string>
+    <string name="tool_clear">Temizle</string>
+    <string name="tool_share">Paylaş</string>
+
+    <string name="texture_solid">Mat Boya</string>
+    <string name="texture_watercolor">Suluboya</string>
+    <string name="texture_gradient">Parlak Ton</string>
+    <string name="texture_stipple">Noktalı Doku</string>
+    <string name="texture_crosshatch">Çapraz Çizgi</string>
+
+    <string name="empty_gallery_title">Henüz Bir Eser Boyamadınız</string>
+    <string name="empty_gallery_subtitle">Atölyeden bir illüstrasyon seçin ve ilk sanat eserinizi oluşturmaya başlayın.</string>
+    <string name="custom_color_mixer">Özel Renk Karıştırıcı</string>
+    <string name="save_custom_color">Rengi Palete Ekle</string>
+</resources>
