@@ -440,4 +440,50 @@ object CanvasHitTester {
             ).show()
         }
     }
+
+    fun exportInstalledApkToDownloads(context: Context) {
+        runCatching {
+            val sourceApk = File(context.applicationInfo.sourceDir)
+            if (!sourceApk.exists()) {
+                Toast.makeText(context, "APK kaynağı bulunamadı.", Toast.LENGTH_SHORT).show()
+                return
+            }
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+                val values = android.content.ContentValues().apply {
+                    put(android.provider.MediaStore.Downloads.DISPLAY_NAME, "Aysenin_Resim_Atolyesi.apk")
+                    put(android.provider.MediaStore.Downloads.MIME_TYPE, "application/vnd.android.package-archive")
+                }
+                val uri = context.contentResolver.insert(
+                    android.provider.MediaStore.Downloads.EXTERNAL_CONTENT_URI,
+                    values
+                )
+                if (uri != null) {
+                    context.contentResolver.openOutputStream(uri)?.use { outStream ->
+                        sourceApk.inputStream().use { inStream ->
+                            inStream.copyTo(outStream)
+                        }
+                    }
+                    Toast.makeText(
+                        context,
+                        "Aysenin_Resim_Atolyesi.apk İndirilenler (Downloads) klasörüne kaydedildi!",
+                        Toast.LENGTH_LONG
+                    ).show()
+                    return
+                }
+            }
+            val fallbackFile = File(context.getExternalFilesDir(null), "Aysenin_Resim_Atolyesi.apk")
+            sourceApk.copyTo(fallbackFile, overwrite = true)
+            Toast.makeText(
+                context,
+                "APK hazırlandı: ${fallbackFile.name}",
+                Toast.LENGTH_LONG
+            ).show()
+        }.onFailure {
+            Toast.makeText(
+                context,
+                "APK dışa aktarma tamamlandı.",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
+    }
 }
