@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Ayşe'nin Resim Atölyesi</title>
+<style>
+  :root {
+    --bg: #FBF8F3; --paper: #F3EDE2; --surface: #FFFFFF;
+    --ink: #1E1B2E; --muted: #5E5873; --primary: #E85D4A;
+    --primary-light: #FFDBD5; --emerald: #10B981; --outline: #D6CFC2;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; }
+  body {
+    margin: 0; padding: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Rounded", sans-serif;
+    background: var(--bg); color: var(--ink);
+    height: 100vh; width: 100vw; overflow: hidden;
+    display: flex; flex-direction: column;
+  }
+  .safe-top { padding-top: max(env(safe-area-inset-top), 12px); }
+  .safe-bottom { padding-bottom: max(env(safe-area-inset-bottom), 8px); }
+  .screen { flex: 1; overflow-y: auto; padding: 14px 18px 28px 18px; display: none; }
+  .screen.active { display: block; }
+  .studio-screen { position: fixed; inset: 0; background: var(--bg); z-index: 50; display: none; flex-direction: column; }
+  .studio-screen.active { display: flex; }
+  .top-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+  .app-title { font-size: 24px; font-weight: 800; margin: 0; }
+  .app-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .stats-pill { background: var(--paper); border-radius: 20px; padding: 7px 13px; display: flex; gap: 10px; font-weight: 700; font-size: 13px; }
+  .hero-card {
+    background: linear-gradient(135deg, #181426 0%, #2D1F3D 55%, #E85D4A 100%);
+    border-radius: 26px; padding: 18px; color: #fff;
+    display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 16px;
+  }
+  .btn-primary { background: var(--primary); color: #fff; border: none; border-radius: 99px; padding: 9px 16px; font-size: 13px; font-weight: 700; cursor: pointer; }
+  .chip-row { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 6px; margin-bottom: 10px; }
+  .chip-row::-webkit-scrollbar { display: none; }
+  .chip { background: var(--paper); color: var(--ink); border: 1px solid var(--outline); border-radius: 99px; padding: 7px 14px; font-size: 12px; font-weight: 700; white-space: nowrap; cursor: pointer; }
+  .chip.selected { background: var(--primary); color: #fff; border-color: var(--primary); }
+  .art-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+  .art-card { background: var(--surface); border-radius: 22px; padding: 11px; box-shadow: 0 3px 12px rgba(0,0,0,0.06); cursor: pointer; display: flex; flex-direction: column; }
+  .art-thumb-wrap { position: relative; width: 100%; aspect-ratio: 1/1; background: var(--bg); border-radius: 16px; border: 1px solid rgba(214,207,194,0.6); padding: 6px; }
+  .region-pill { position: absolute; top: 6px; left: 6px; background: rgba(255,255,255,0.92); font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 99px; }
+  .done-pill { position: absolute; top: 6px; right: 6px; background: var(--emerald); color: #fff; font-size: 10px; font-weight: 800; padding: 3px 8px; border-radius: 99px; }
+  .art-card-title { font-size: 14px; font-weight: 800; margin: 9px 0 2px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .art-card-meta { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin-bottom: 7px; }
+  .swatch-strip { display: flex; gap: 4px; height: 6px; }
+  .swatch-strip span { flex: 1; border-radius: 99px; }
+  .progress-bar { height: 5px; background: var(--paper); border-radius: 99px; overflow: hidden; }
+  .progress-fill { height: 100%; background: var(--primary); border-radius: 99px; }
+  .bottom-nav { background: var(--surface); border-top: 1px solid var(--outline); display: flex; justify-content: space-around; padding-top: 8px; }
+  .nav-item { display: flex; flex-direction: column; align-items: center; gap: 3px; color: var(--muted); font-size: 11px; font-weight: 700; cursor: pointer; padding: 4px 14px; }
+  .nav-item.active { color: var(--primary); }
+  .studio-header { background: var(--surface); padding: 8px 12px; border-bottom: 1px solid var(--outline); }
+  .studio-header-row { display: flex; align-items: center; justify-content: space-between; }
+  .icon-btn { width: 36px; height: 36px; border-radius: 50%; border: none; background: var(--paper); color: var(--ink); font-size: 15px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
+  .icon-btn.active { background: var(--primary); color: #fff; }
+  .studio-tools-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 12px; gap: 8px; }
+  .studio-canvas-area { flex: 1; display: flex; align-items: center; justify-content: center; padding: 6px 14px; position: relative; overflow: hidden; }
+  .canvas-frame { width: 100%; max-width: 420px; aspect-ratio: 1/1; background: var(--paper); border-radius: 24px; border: 2px solid var(--outline); position: relative; overflow: hidden; }
+  #mainCanvas { width: 100%; height: 100%; display: block; touch-action: none; }
+  .studio-dock { background: var(--surface); border-radius: 24px 24px 0 0; box-shadow: 0 -4px 18px rgba(0,0,0,0.08); padding: 10px 12px 12px 12px; }
+  .swatch-row { display: flex; align-items: center; gap: 10px; overflow-x: auto; padding: 4px 2px; }
+  .color-well { width: 44px; height: 44px; border-radius: 50%; flex-shrink: 0; border: 2px solid rgba(0,0,0,0.2); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 14px; cursor: pointer; }
+  .color-well.selected { width: 52px; height: 52px; border: 3.5px solid var(--ink); }
+</style>
+</head>
+<body>
+<div id="screenStudio" class="screen safe-top active">
+  <div class="top-header">
+    <div>
+      <h1 class="app-title">Ayşe'nin Resim Atölyesi</h1>
+      <div class="app-sub">Profesyonel Dijital Sanat ve Boyama Stüdyosu</div>
+    </div>
+    <div class="stats-pill"><span>★ <b id="hdrStars">0</b></span><span>🖌️ <b id="hdrRegions">0</b></span></div>
+  </div>
+  <div class="hero-card" onclick="openArtwork('anatolian_mandala')">
+    <div style="flex:1">
+      <div style="font-size:10px;font-weight:800;color:#FFD166">✨ GÜNÜN İLHAM ESERİ</div>
+      <div style="font-size:20px;font-weight:800;margin:6px 0">Anadolu Güneş Mandalası</div>
+      <button class="btn-primary">Hemen Boyamaya Başla</button>
+    </div>
+    <div style="width:100px;height:100px;background:var(--bg);border-radius:18px;padding:4px">
+      <canvas id="heroMiniCanvas" width="200" height="200" style="width:100%;height:100%"></canvas>
+    </div>
+  </div>
+  <div class="chip-row" id="categoryChips"></div>
+  <div class="art-grid" id="templateGrid"></div>
+</div>
+<div id="screenGallery" class="screen safe-top">
+  <h1 class="app-title">Kişisel Sanat Galerim</h1>
+  <div id="galleryList" style="display:flex;flex-direction:column;gap:14px;margin-top:14px"></div>
+</div>
+<div id="screenPalettes" class="screen safe-top">
+  <h1 class="app-title">Renk Laboratuvarı & Paletler</h1>
+  <div id="palettesContainer" style="display:flex;flex-direction:column;gap:12px;margin-top:14px"></div>
+</div>
+<div id="screenAchievements" class="screen safe-top">
+  <h1 class="app-title">Sanatçı Profili & Başarılar</h1>
+  <div id="achievementsContainer" style="display:flex;flex-direction:column;gap:12px;margin-top:14px"></div>
+</div>
+<div class="bottom-nav safe-bottom">
+  <div class="nav-item active" id="nav_studio" onclick="switchTab('studio')"><span>🖌️</span><span>Atölye</span></div>
+  <div class="nav-item" id="nav_gallery" onclick="switchTab('gallery')"><span>🖼️</span><span>Galerim</span></div>
+  <div class="nav-item" id="nav_palettes" onclick="switchTab('palettes')"><span>🎨</span><span>Paletler</span></div>
+  <div class="nav-item" id="nav_achievements" onclick="switchTab('achievements')"><span>🏆</span><span>Başarılar</span></div>
+</div>
+<div id="studioOverlay" class="studio-screen safe-top safe-bottom">
+  <div class="studio-header">
+    <div class="studio-header-row">
+      <div style="display:flex;align-items:center;gap:8px">
+        <button class="icon-btn" onclick="closeStudio()">←</button>
+        <div>
+          <div id="stTitle" style="font-weight:800;font-size:15px">Eser</div>
+          <div id="stProgressText" style="font-size:11px;color:var(--primary);font-weight:700">0/20 Bölge</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:5px">
+        <button class="icon-btn" onclick="studioUndo()">↶</button>
+        <button class="icon-btn" onclick="triggerHint()">💡</button>
+        <button class="icon-btn" onclick="magicHarmonyFill()">✨</button>
+        <button class="icon-btn" onclick="clearStudioCanvas()">🗑</button>
+      </div>
+    </div>
+    <div class="progress-bar" style="margin-top:6px"><div id="stProgressBar" class="progress-fill" style="width:0%"></div></div>
+  </div>
+  <div class="studio-tools-row">
+    <div style="display:flex;gap:6px">
+      <button class="chip selected" id="mode_fill" onclick="setStudioMode('fill')">💧 Dolgu</button>
+      <button class="chip" id="mode_number" onclick="setStudioMode('number')">🔢 Sayılarla</button>
+    </div>
+  </div>
+  <div class="studio-canvas-area">
+    <div class="canvas-frame"><canvas id="mainCanvas" width="1000" height="1000"></canvas></div>
+  </div>
+  <div class="studio-dock">
+    <div class="chip-row" id="textureRow" style="margin-bottom:8px"></div>
+    <div class="swatch-row" id="studioSwatches"></div>
+  </div>
+</div>
+<script>
+const PALETTES = [
+  { id: "cappadocia_sunset", name: "Kapadokya Gün Batımı", mood: "Sıcak toprak ve altın saat tonları", colors: ["#E85D4A","#F4A261","#E9C46A","#2A9D8F","#264653","#9B5DE5","#F15BB5","#F7EDE2"] },
+  { id: "aegean_breeze", name: "Ege Kıyıları", mood: "Serin deniz köpüğü ve begonvil", colors: ["#0077B6","#00B4D8","#90E0EF","#FF5D8F","#FFB703","#FB8500","#023E8A","#CAF0F8"] },
+  { id: "botanical_garden", name: "Botanik Bahçe", mood: "Zümrüt yapraklar ve orkideler", colors: ["#2D6A4F","#52B788","#95D5B2","#D8F3DC","#D90429","#FF758F","#FFB703","#7F4F24"] },
+  { id: "stained_cathedral", name: "Vitray Katedrali", mood: "Yakut, safir ve kehribar", colors: ["#D90429","#FF9F1C","#FFBF69","#2EC4B6","#3A86FF","#8338EC","#FF006E","#1D3557"] },
+  { id: "cosmic_nebula", name: "Kozmik Nebula", mood: "Yıldız tozu ve galaksi moru", colors: ["#7209B7","#3F37C9","#4CC9F0","#F72585","#B5179E","#FFBE0B","#06D6A0","#10002B"] }
+];
+const TEXTURES = [{id:"SOLID",label:"Mat Gouache"},{id:"WATERCOLOR",label:"Suluboya"},{id:"GRADIENT",label:"İpek Gradyan"}];
+const CATEGORIES = [{id:"ALL",title:"Tümü"},{id:"MANDALA",title:"Mandala & Zen"},{id:"NATURE",title:"Doğa & Botanik"},{id:"ANIMALS",title:"Hayvanlar Alemi"},{id:"STAINED_GLASS",title:"Vitray & Mozaik"},{id:"COSMIC",title:"Fantastik & Uzay"}];
+function polar(cx,cy,r,deg){const rad=deg*Math.PI/180;return {x:cx+r*Math.cos(rad),y:cy+r*Math.sin(rad)};}
+function circlePoly(cx,cy,r,s=32){const p=[];for(let i=0;i<s;i++)p.push(polar(cx,cy,r,i*(360/s)));return p;}
+function ovalPoly(cx,cy,rx,ry,s=32){const p=[];for(let i=0;i<s;i++){const rad=i*(360/s)*Math.PI/180;p.push({x:cx+rx*Math.cos(rad),y:cy+ry*Math.sin(rad)});}return p;}
+function rectPoly(l,t,r,b){return [{x:l,y:t},{x:r,y:t},{x:r,y:b},{x:l,y:b}];}
+function starPoly(cx,cy,oR,iR,c,s=-90){const p=[];for(let i=0;i<c*2;i++)p.push(polar(cx,cy,i%2===0?oR:iR,s+i*(180/c)));return p;}
+function petalPoly(cx,cy,iR,oR,ang,sp){
+  const rC=ang*Math.PI/180,rL=(ang-sp)*Math.PI/180,rR=(ang+sp)*Math.PI/180,mR=iR+(oR-iR)*0.58;
+  const sX=cx+iR*Math.cos(rL*0.35+rC*0.65),sY=cy+iR*Math.sin(rL*0.35+rC*0.65),eX=cx+iR*Math.cos(rR*0.35+rC*0.65),eY=cy+iR*Math.sin(rR*0.35+rC*0.65);
+  const cLX=cx+mR*1.12*Math.cos(rL),cLY=cy+mR*1.12*Math.sin(rL),cRX=cx+mR*1.12*Math.cos(rR),cRY=cy+mR*1.12*Math.sin(rR),tX=cx+oR*Math.cos(rC),tY=cy+oR*Math.sin(rC);
+  const p=[];
+  for(let i=0;i<=10;i++){const t=i/10,u=1-t;p.push({x:u*u*sX+2*u*t*cLX+t*t*tX,y:u*u*sY+2*u*t*cLY+t*t*tY});}
+  for(let i=1;i<=10;i++){const t=i/10,u=1-t;p.push({x:u*u*tX+2*u*t*cRX+t*t*eX,y:u*u*tY+2*u*t*cRY+t*t*eY});}
+  return p;
+}
+function ringSectorPoly(cx,cy,iR,oR,sD,swD){const p=[];for(let i=0;i<=12;i++)p.push(polar(cx,cy,oR,sD+swD*(i/12)));for(let i=12;i>=0;i--)p.push(polar(cx,cy,iR,sD+swD*(i/12)));return p;}
+function buildTemplates(){
+  const list=[];
+  {const r=[];let id=1;r.push({id:id++,target:7,center:{x:115,y:115},pts:rectPoly(40,40,960,960)});r.push({id:id++,target:4,center:polar(500,500,395,-90),pts:circlePoly(500,500,425)});for(let i=0;i<8;i++)r.push({id:id++,target:i%2,center:polar(500,500,320,i*45),pts:petalPoly(500,500,210,405,i*45,21)});r.push({id:id++,target:3,center:polar(500,500,195,-45),pts:circlePoly(500,500,220)});for(let i=0;i<6;i++)r.push({id:id++,target:5+(i%2),center:polar(500,500,142,i*60),pts:petalPoly(500,500,70,195,i*60,26)});r.push({id:id++,target:2,center:{x:500,y:435},pts:starPoly(500,500,96,52,8)});r.push({id:id++,target:0,center:{x:500,y:500},pts:circlePoly(500,500,40)});list.push({id:"anatolian_mandala",title:"Anadolu Güneş Mandalası",category:"MANDALA",catLabel:"Mandala & Zen",stars:2,paletteId:"cappadocia_sunset",regions:r});}
+  {const r=[];let id=1;r.push({id:id++,target:7,center:{x:150,y:150},pts:rectPoly(45,45,955,955)});r.push({id:id++,target:5,center:{x:745,y:215},pts:circlePoly(745,215,125)});r.push({id:id++,target:1,center:{x:500,y:690},pts:ovalPoly(500,600,225,230)});r.push({id:id++,target:0,center:{x:285,y:595},pts:ovalPoly(300,585,68,165)});r.push({id:id++,target:0,center:{x:715,y:595},pts:ovalPoly(700,585,68,165)});r.push({id:id++,target:4,center:{x:500,y:260},pts:ovalPoly(500,345,195,155)});r.push({id:id++,target:5,center:{x:390,y:305},pts:circlePoly(415,350,76)});r.push({id:id++,target:5,center:{x:610,y:305},pts:circlePoly(585,350,76)});r.push({id:id++,target:2,center:{x:415,y:350},pts:circlePoly(415,350,42)});r.push({id:id++,target:2,center:{x:585,y:350},pts:circlePoly(585,350,42)});list.push({id:"mystic_night_owl",title:"Gizemli Gece Baykuşu",category:"ANIMALS",catLabel:"Hayvanlar Alemi",stars:1,paletteId:"cosmic_nebula",regions:r});}
+  {const r=[];let id=1;r.push({id:id++,target:7,center:{x:500,y:105},pts:rectPoly(65,55,935,945)});for(let i=0;i<8;i++)r.push({id:id++,target:i%6,center:polar(500,520,330,i*45+22.5),pts:ringSectorPoly(500,520,250,390,i*45,45)});for(let i=0;i<8;i++)r.push({id:id++,target:(i+2)%7,center:polar(500,520,185,i*45+45),pts:ringSectorPoly(500,520,120,250,i*45+22.5,45)});r.push({id:id++,target:1,center:{x:500,y:520},pts:circlePoly(500,520,65)});list.push({id:"stained_rose_window",title:"Gotik Gül Vitrayı",category:"STAINED_GLASS",catLabel:"Vitray & Mozaik",stars:3,paletteId:"stained_cathedral",regions:r});}
+  {const r=[];let id=1;r.push({id:id++,target:3,center:{x:500,y:120},pts:rectPoly(65,55,935,945)});r.push({id:id++,target:6,center:{x:500,y:250},pts:circlePoly(500,380,235)});for(let i=0;i<5;i++)r.push({id:id++,target:i%2===0?4:5,center:polar(500,450,115,-90+i*72),pts:petalPoly(500,450,28,175,-90+i*72,30)});r.push({id:id++,target:6,center:{x:500,y:450},pts:circlePoly(500,450,42)});r.push({id:id++,target:7,center:{x:500,y:780},pts:ovalPoly(500,770,155,135)});list.push({id:"botanical_monstera",title:"Tropikal Monstera & Orkide",category:"NATURE",catLabel:"Doğa & Botanik",stars:2,paletteId:"botanical_garden",regions:r});}
+  {const r=[];let id=1;r.push({id:id++,target:7,center:{x:150,y:150},pts:rectPoly(45,45,955,955)});r.push({id:id++,target:0,center:{x:500,y:220},pts:ovalPoly(500,480,370,330)});r.push({id:id++,target:2,center:{x:205,y:520},pts:ovalPoly(500,520,360,110)});r.push({id:id++,target:3,center:{x:500,y:430},pts:circlePoly(500,520,165)});r.push({id:id++,target:6,center:{x:750,y:225},pts:circlePoly(750,225,78)});list.push({id:"cosmic_galaxy",title:"Kozmik Galaksi & Halkalar",category:"COSMIC",catLabel:"Fantastik & Uzay",stars:1,paletteId:"cosmic_nebula",regions:r});}
+  return list;
+}
+const TEMPLATES = buildTemplates();
+let savedState = JSON.parse(localStorage.getItem("aysenin_atolyesi_v1") || '{"artworks":{}}');
+let selectedCategory = "ALL", activeTemplate = null, studioMode = "fill", activeTexture = "SOLID", activePaletteId = PALETTES[0].id, selectedColor = PALETTES[0].colors[0], selectedColorIndex = 0, hintRegionId = null, undoStack = [];
+function persistState(){localStorage.setItem("aysenin_atolyesi_v1",JSON.stringify(savedState));}
+function pointInPoly(x,y,pts){let ins=false;for(let i=0,j=pts.length-1;i<pts.length;j=i++){const xi=pts[i].x,yi=pts[i].y,xj=pts[j].x,yj=pts[j].y;if(((yi>y)!==(yj>y))&&(x<(xj-xi)*(y-yi)/((yj-yi)||0.0001)+xi))ins=!ins;}return ins;}
+function findRegionAt(tpl,nx,ny){for(let i=tpl.regions.length-1;i>=0;i--)if(pointInPoly(nx,ny,tpl.regions[i].pts))return tpl.regions[i];return null;}
+function drawArtwork(ctx,w,h,tpl,fills,showNums=false,hiIdx=-1,hintId=null){
+  ctx.clearRect(0,0,w,h);const sx=w/1000,sy=h/1000;
+  tpl.regions.forEach(reg=>{
+    ctx.beginPath();reg.pts.forEach((p,idx)=>{if(idx===0)ctx.moveTo(p.x*sx,p.y*sy);else ctx.lineTo(p.x*sx,p.y*sy);});ctx.closePath();
+    const f=fills[reg.id];ctx.fillStyle=f?f.color:((showNums&&reg.target===hiIdx)?"rgba(232,93,74,0.28)":"#FDFBF7");ctx.fill();
+    ctx.lineWidth=Math.max(1.5,3*sx);ctx.strokeStyle="#231F36";ctx.stroke();
+  });
+  if(showNums){tpl.regions.forEach(reg=>{if(fills[reg.id])return;const cx=reg.center.x*sx,cy=reg.center.y*sy;ctx.beginPath();ctx.arc(cx,cy,16*sx,0,Math.PI*2);ctx.fillStyle=reg.target===hiIdx?"#E85D4A":"#FFF";ctx.fill();ctx.fillStyle=reg.target===hiIdx?"#FFF":"#1E1B2E";ctx.font=`bold ${Math.round(18*sx)}px sans-serif`;ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillText(String(reg.target+1),cx,cy);});}
+}
+function renderHome(){
+  let stars=0,regs=0;Object.values(savedState.artworks).forEach(a=>{const c=Object.keys(a.fills||{}).length;regs+=c;if(c>0)stars+=2;});
+  document.getElementById("hdrStars").textContent=stars;document.getElementById("hdrRegions").textContent=regs;
+  drawArtwork(document.getElementById("heroMiniCanvas").getContext("2d"),200,200,TEMPLATES[0],savedState.artworks["anatolian_mandala"]?.fills||{});
+  const cw=document.getElementById("categoryChips");cw.innerHTML="";
+  CATEGORIES.forEach(c=>{const b=document.createElement("button");b.className="chip"+(selectedCategory===c.id?" selected":"");b.textContent=c.title;b.onclick=()=>{selectedCategory=c.id;renderHome();};cw.appendChild(b);});
+  const g=document.getElementById("templateGrid");g.innerHTML="";
+  TEMPLATES.filter(t=>selectedCategory==="ALL"||t.category===selectedCategory).forEach(tpl=>{
+    const fills=savedState.artworks[tpl.id]?.fills||{};
+    const card=document.createElement("div");card.className="art-card";card.onclick=()=>openArtwork(tpl.id);
+    card.innerHTML=`<div class="art-thumb-wrap"><canvas width="200" height="200" style="width:100%;height:100%"></canvas><span class="region-pill">${tpl.regions.length} Bölge</span></div><div class="art-card-title">${tpl.title}</div><div class="art-card-meta"><span>${tpl.catLabel}</span><span style="color:#FFB800">${"★".repeat(tpl.stars)}</span></div>`;
+    g.appendChild(card);drawArtwork(card.querySelector("canvas").getContext("2d"),200,200,tpl,fills);
+  });
+}
+function openArtwork(id){
+  activeTemplate=TEMPLATES.find(t=>t.id===id)||TEMPLATES[0];
+  if(!savedState.artworks[id])savedState.artworks[id]={fills:{},total:activeTemplate.regions.length};
+  activePaletteId=activeTemplate.paletteId;const pal=PALETTES.find(p=>p.id===activePaletteId)||PALETTES[0];
+  selectedColorIndex=0;selectedColor=pal.colors[0];undoStack=[];
+  document.getElementById("studioOverlay").classList.add("active");renderStudioUI();
+}
+function closeStudio(){document.getElementById("studioOverlay").classList.remove("active");renderHome();}
+function renderStudioUI(){
+  const fills=savedState.artworks[activeTemplate.id].fills||{};
+  const cnt=Object.keys(fills).length,tot=activeTemplate.regions.length,pct=Math.round((cnt/tot)*100);
+  document.getElementById("stTitle").textContent=activeTemplate.title;
+  document.getElementById("stProgressText").textContent=`${cnt}/${tot} Bölge (%${pct})`;
+  document.getElementById("stProgressBar").style.width=`${pct}%`;
+  const tr=document.getElementById("textureRow");tr.innerHTML="";
+  TEXTURES.forEach(t=>{const b=document.createElement("button");b.className="chip"+(activeTexture===t.id?" selected":"");b.textContent=t.label;b.onclick=()=>{activeTexture=t.id;renderStudioUI();};tr.appendChild(b);});
+  const pal=PALETTES.find(p=>p.id===activePaletteId)||PALETTES[0];
+  const sw=document.getElementById("studioSwatches");sw.innerHTML="";
+  pal.colors.forEach((col,idx)=>{const w=document.createElement("div");w.className="color-well"+(selectedColor===col?" selected":"");w.style.background=col;w.style.color=idx===7?"#000":"#FFF";w.textContent=studioMode==="number"?String(idx+1):(selectedColor===col?"✓":"");w.onclick=()=>{selectedColorIndex=idx;selectedColor=col;renderStudioUI();};sw.appendChild(w);});
+  drawArtwork(document.getElementById("mainCanvas").getContext("2d"),1000,1000,activeTemplate,fills,studioMode==="number",selectedColorIndex,hintRegionId);
+}
+document.getElementById("mainCanvas").addEventListener("pointerdown",e=>{
+  if(!activeTemplate)return;const rect=e.target.getBoundingClientRect();
+  const nx=((e.clientX-rect.left)/rect.width)*1000,ny=((e.clientY-rect.top)/rect.height)*1000;
+  const reg=findRegionAt(activeTemplate,nx,ny);if(!reg)return;
+  const art=savedState.artworks[activeTemplate.id];undoStack.push(JSON.parse(JSON.stringify(art.fills)));
+  art.fills[reg.id]={color:selectedColor,texture:activeTexture};persistState();renderStudioUI();
+});
+function setStudioMode(m){studioMode=m;["fill","number"].forEach(k=>document.getElementById("mode_"+k).classList.toggle("selected",k===m));renderStudioUI();}
+function studioUndo(){if(!undoStack.length)return;savedState.artworks[activeTemplate.id].fills=undoStack.pop();persistState();renderStudioUI();}
+function triggerHint(){const art=savedState.artworks[activeTemplate.id];const u=activeTemplate.regions.find(r=>!art.fills[r.id]);if(!u)return;const pal=PALETTES.find(p=>p.id===activePaletteId)||PALETTES[0];art.fills[u.id]={color:pal.colors[u.target%pal.colors.length],texture:activeTexture};persistState();renderStudioUI();}
+function magicHarmonyFill(){const art=savedState.artworks[activeTemplate.id];const pal=PALETTES.find(p=>p.id===activePaletteId)||PALETTES[0];activeTemplate.regions.filter(r=>!art.fills[r.id]).slice(0,3).forEach(u=>{art.fills[u.id]={color:pal.colors[u.target%pal.colors.length],texture:activeTexture};});persistState();renderStudioUI();}
+function clearStudioCanvas(){savedState.artworks[activeTemplate.id].fills={};persistState();renderStudioUI();}
+function switchTab(t){
+  ["studio","gallery","palettes","achievements"].forEach(k=>document.getElementById("nav_"+k).classList.toggle("active",k===t));
+  document.getElementById("screenStudio").classList.toggle("active",t==="studio");
+  document.getElementById("screenGallery").classList.toggle("active",t==="gallery");
+  document.getElementById("screenPalettes").classList.toggle("active",t==="palettes");
+  document.getElementById("screenAchievements").classList.toggle("active",t==="achievements");
+  if(t==="studio")renderHome();
+  if(t==="gallery"){const w=document.getElementById("galleryList");w.innerHTML="";TEMPLATES.filter(tp=>Object.keys(savedState.artworks[tp.id]?.fills||{}).length>0).forEach(tp=>{const d=document.createElement("div");d.className="art-card";d.textContent=tp.title+" (Devam Et)";d.onclick=()=>openArtwork(tp.id);w.appendChild(d);});}
+  if(t==="palettes"){const w=document.getElementById("palettesContainer");w.innerHTML="";PALETTES.forEach(p=>{const d=document.createElement("div");d.className="art-card";d.innerHTML=`<b>${p.name}</b><div class="swatch-strip" style="height:24px;margin-top:6px">${p.colors.map(c=>`<span style="background:${c}"></span>`).join("")}</div>`;w.appendChild(d);});}
+  if(t==="achievements"){const w=document.getElementById("achievementsContainer");w.innerHTML=`<div class="art-card"><b>🏆 Başkalfa Nakkaş Yolculuğu</b><div style="font-size:12px;margin-top:4px">Boyadığınız her bölge ile yeni rozetler açılır.</div></div>`;}
+}
+renderHome();
+</script>
+</body>
+</html>

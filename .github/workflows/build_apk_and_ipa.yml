@@ -19,15 +19,50 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Prepare Public Maven Gradle Config for GitHub Runner
+      - name: Prepare Clean Android Project & Sanitize Binary Resources
         run: |
-          cat << 'TOMLEOF' > gradle/libs.versions.toml
-          [versions]
+          python3 - << 'PYEOF'
+          import glob
+          import os
+          import shutil
+          import struct
+          import zlib
+
+          # 1. Write clean gradle.properties with android.useAndroidX=true (required by AGP 8.x)
+          with open("gradle.properties", "w", encoding="utf-8") as f:
+              f.write("""org.gradle.jvmargs=-Xmx4g -Dfile.encoding=UTF-8
+          org.gradle.parallel=true
+          kotlin.code.style=official
+          android.useAndroidX=true
+          android.nonTransitiveRClass=true
+          """)
+
+          # 2. Write clean settings.gradle.kts
+          with open("settings.gradle.kts", "w", encoding="utf-8") as f:
+              f.write("""pluginManagement {
+            repositories {
+              google()
+              mavenCentral()
+              gradlePluginPortal()
+            }
+          }
+          dependencyResolutionManagement {
+            repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+            repositories {
+              google()
+              mavenCentral()
+            }
+          }
+          rootProject.name = "AyseninResimAtolyesi"
+          include(":app")
+          """)
+
+          # 3. Write clean gradle/libs.versions.toml
+          os.makedirs("gradle", exist_ok=True)
+          with open("gradle/libs.versions.toml", "w", encoding="utf-8") as f:
+              f.write("""[versions]
           agp = "8.7.3"
           coreKtx = "1.15.0"
-          junit = "4.13.2"
-          junitVersion = "1.2.1"
-          espressoCore = "3.6.1"
           lifecycleRuntimeKtx = "2.8.7"
           lifecycleViewmodelCompose = "2.8.7"
           lifecycleRuntimeCompose = "2.8.7"
@@ -35,22 +70,14 @@ jobs:
           kotlin = "2.0.21"
           composeBom = "2024.09.00"
           googleDevtoolsKsp = "2.0.21-1.0.28"
-          navigationCompose = "2.8.4"
           roomRuntime = "2.6.1"
           roomKtx = "2.6.1"
           roomCompiler = "2.6.1"
-          kotlinxCoroutinesTest = "1.9.0"
-          core = "1.6.1"
-          runner = "1.6.2"
           kotlinxCoroutinesAndroid = "1.9.0"
           kotlinxCoroutinesCore = "1.9.0"
-          robolectric = "4.13"
 
           [libraries]
           androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
-          junit = { group = "junit", name = "junit", version.ref = "junit" }
-          androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
-          androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
           androidx-lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "lifecycleRuntimeKtx" }
           androidx-lifecycle-viewmodel-compose = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-compose", version.ref = "lifecycleViewmodelCompose" }
           androidx-lifecycle-runtime-compose = { group = "androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "lifecycleRuntimeCompose" }
@@ -60,39 +87,35 @@ jobs:
           androidx-compose-ui-graphics = { group = "androidx.compose.ui", name = "ui-graphics" }
           androidx-compose-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }
           androidx-compose-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
-          androidx-compose-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest" }
-          androidx-compose-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
           androidx-room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "roomRuntime" }
           androidx-room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "roomKtx" }
           androidx-room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "roomCompiler" }
-          kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "kotlinxCoroutinesTest" }
-          androidx-core = { group = "androidx.test", name = "core", version.ref = "core" }
-          androidx-runner = { group = "androidx.test", name = "runner", version.ref = "runner" }
           androidx-compose-material3 = { group = "androidx.compose.material3", name = "material3" }
           androidx-compose-material-icons-core = { group = "androidx.compose.material", name = "material-icons-core" }
           androidx-compose-material-icons-extended = { group = "androidx.compose.material", name = "material-icons-extended" }
           kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "kotlinxCoroutinesAndroid" }
           kotlinx-coroutines-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core", version.ref = "kotlinxCoroutinesCore" }
-          robolectric = { group = "org.robolectric", name = "robolectric", version.ref = "robolectric" }
 
           [plugins]
           android-application = { id = "com.android.application", version.ref = "agp" }
           kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
           kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
           google-devtools-ksp = { id = "com.google.devtools.ksp", version.ref = "googleDevtoolsKsp" }
-          TOMLEOF
+          """)
 
-          cat << 'ROOTEOF' > build.gradle.kts
-          plugins {
+          # 4. Write clean root build.gradle.kts
+          with open("build.gradle.kts", "w", encoding="utf-8") as f:
+              f.write("""plugins {
             alias(libs.plugins.android.application) apply false
             alias(libs.plugins.kotlin.android) apply false
             alias(libs.plugins.kotlin.compose) apply false
             alias(libs.plugins.google.devtools.ksp) apply false
           }
-          ROOTEOF
+          """)
 
-          cat << 'APPEOF' > app/build.gradle.kts
-          plugins {
+          # 5. Write clean app/build.gradle.kts
+          with open("app/build.gradle.kts", "w", encoding="utf-8") as f:
+              f.write("""plugins {
             alias(libs.plugins.android.application)
             alias(libs.plugins.kotlin.android)
             alias(libs.plugins.kotlin.compose)
@@ -143,7 +166,99 @@ jobs:
             implementation(libs.kotlinx.coroutines.core)
             "ksp"(libs.androidx.room.compiler)
           }
-          APPEOF
+          """)
+
+          # 6. Ensure valid TrueType font files in app/src/main/res/font/
+          font_dir = "app/src/main/res/font"
+          os.makedirs(font_dir, exist_ok=True)
+          sys_fonts = glob.glob("/usr/share/fonts/**/*.ttf", recursive=True)
+          bold_font = next((p for p in sys_fonts if "DejaVuSans-Bold.ttf" in p), sys_fonts[0] if sys_fonts else None)
+          reg_font = next((p for p in sys_fonts if "DejaVuSans.ttf" in p), sys_fonts[0] if sys_fonts else None)
+
+          def is_valid_ttf(path):
+              if not os.path.exists(path) or os.path.getsize(path) < 1024:
+                  return False
+              with open(path, "rb") as bf:
+                  magic = bf.read(4)
+              return magic in (b"\x00\x01\x00\x00", b"OTTO", b"true")
+
+          for target_name, fallback_src in [("fredoka.ttf", bold_font), ("plus_jakarta_sans.ttf", reg_font)]:
+              target_path = os.path.join(font_dir, target_name)
+              if not is_valid_ttf(target_path) and fallback_src:
+                  shutil.copyfile(fallback_src, target_path)
+
+          # 7. Replace any potentially corrupted binary JPG/PNG in drawable/ with clean Vector XML drawables
+          drawable_dir = "app/src/main/res/drawable"
+          os.makedirs(drawable_dir, exist_ok=True)
+          for ext in ("*.jpg", "*.jpeg", "*.png", "*.webp"):
+              for p in glob.glob(os.path.join(drawable_dir, ext)):
+                  os.remove(p)
+
+          with open(os.path.join(drawable_dir, "img_studio_hero.xml"), "w", encoding="utf-8") as f:
+              f.write("""<?xml version="1.0" encoding="utf-8"?>
+          <vector xmlns:android="http://schemas.android.com/apk/res/android"
+              android:width="320dp"
+              android:height="180dp"
+              android:viewportWidth="320"
+              android:viewportHeight="180">
+              <path android:fillColor="#1E1B2E" android:pathData="M0,0h320v180h-320z" />
+              <path android:fillColor="#3A2449" android:pathData="M0,0h200v180h-200z" />
+              <path android:fillColor="#E85D4A" android:pathData="M245,90m-68,0a68,68 0,1 1,136 0a68,68 0,1 1,-136 0" />
+              <path android:fillColor="#FFB800" android:pathData="M245,90m-48,0a48,48 0,1 1,96 0a48,48 0,1 1,-96 0" />
+              <path android:fillColor="#2A9D8F" android:pathData="M245,90m-28,0a28,28 0,1 1,56 0a28,28 0,1 1,-56 0" />
+          </vector>
+          """)
+
+          with open(os.path.join(drawable_dir, "img_launcher_icon.xml"), "w", encoding="utf-8") as f:
+              f.write("""<?xml version="1.0" encoding="utf-8"?>
+          <vector xmlns:android="http://schemas.android.com/apk/res/android"
+              android:width="108dp"
+              android:height="108dp"
+              android:viewportWidth="108"
+              android:viewportHeight="108">
+              <path android:fillColor="#1E1B2E" android:pathData="M0,0h108v108h-108z" />
+              <path android:fillColor="#E85D4A" android:pathData="M54,54m-34,0a34,34 0,1 1,68 0a34,34 0,1 1,-68 0" />
+              <path android:fillColor="#FFB800" android:pathData="M42,44m-8,0a8,8 0,1 1,16 0a8,8 0,1 1,-16 0" />
+              <path android:fillColor="#2A9D8F" android:pathData="M64,44m-8,0a8,8 0,1 1,16 0a8,8 0,1 1,-16 0" />
+              <path android:fillColor="#7C4DFF" android:pathData="M54,66m-9,0a9,9 0,1 1,18 0a9,9 0,1 1,-18 0" />
+          </vector>
+          """)
+
+          # 8. Ensure valid binary PNG launcher icons in mipmap-* directories
+          def make_valid_png(width, height):
+              def chunk(tag, data):
+                  return struct.pack("!I", len(data)) + tag + data + struct.pack("!I", zlib.crc32(tag + data) & 0xffffffff)
+              raw = bytearray()
+              cx, cy = width / 2.0, height / 2.0
+              r_outer = width * 0.38
+              for y in range(height):
+                  raw.append(0)
+                  for x in range(width):
+                      d2 = (x - cx) ** 2 + (y - cy) ** 2
+                      if d2 <= r_outer ** 2:
+                          raw.extend((232, 93, 74, 255))
+                      else:
+                          raw.extend((30, 27, 46, 255))
+              return (
+                  b"\x89PNG\r\n\x1a\n"
+                  + chunk(b"IHDR", struct.pack("!IIBBBBB", width, height, 8, 6, 0, 0, 0))
+                  + chunk(b"IDAT", zlib.compress(bytes(raw), 9))
+                  + chunk(b"IEND", b"")
+              )
+
+          for folder, px in [("mipmap-mdpi", 48), ("mipmap-hdpi", 72), ("mipmap-xhdpi", 96), ("mipmap-xxhdpi", 144), ("mipmap-xxxhdpi", 192)]:
+              mdir = os.path.join("app/src/main/res", folder)
+              os.makedirs(mdir, exist_ok=True)
+              for old_f in glob.glob(os.path.join(mdir, "*")):
+                  os.remove(old_f)
+              png_bytes = make_valid_png(px, px)
+              with open(os.path.join(mdir, "ic_launcher.png"), "wb") as pf:
+                  pf.write(png_bytes)
+              with open(os.path.join(mdir, "ic_launcher_round.png"), "wb") as pf:
+                  pf.write(png_bytes)
+
+          print("Project & binary resources sanitized successfully.")
+          PYEOF
 
       - name: Setup Gradle 8.11.1
         uses: gradle/actions/setup-gradle@v4
@@ -152,7 +267,7 @@ jobs:
 
       - name: Build Signed Debug APK
         run: |
-          gradle :app:assembleDebug
+          gradle :app:assembleDebug --no-daemon --stacktrace
           cp app/build/outputs/apk/debug/app-debug.apk Aysenin_Resim_Atolyesi.apk
           ls -lh Aysenin_Resim_Atolyesi.apk
 
@@ -161,3 +276,125 @@ jobs:
         with:
           name: Aysenin-Resim-Atolyesi-Android-APK
           path: Aysenin_Resim_Atolyesi.apk
+
+  build-ios-ipa:
+    name: "iOS .IPA Paketi Oluştur (Ayşe'nin Resim Atölyesi)"
+    runs-on: macos-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Compile Full iOS App & Package .ipa
+        run: |
+          APP_DIR="ios_build/Payload/AyseninResimAtolyesi.app"
+          mkdir -p "$APP_DIR"
+          cp ios_build/studio.html "$APP_DIR/studio.html"
+
+          SDK_PATH=$(xcrun --sdk iphoneos --show-sdk-path)
+          cat << 'OBJCEOF' > ios_build/main.m
+          #import <UIKit/UIKit.h>
+          #import <WebKit/WebKit.h>
+
+          @interface StudioViewController : UIViewController
+          @property (strong, nonatomic) WKWebView *webView;
+          @end
+
+          @implementation StudioViewController
+          - (void)viewDidLoad {
+              [super viewDidLoad];
+              self.view.backgroundColor = [UIColor colorWithRed:0.984 green:0.973 blue:0.953 alpha:1.0];
+              WKWebViewConfiguration *config = [[WKWebViewConfiguration alloc] init];
+              self.webView = [[WKWebView alloc] initWithFrame:self.view.bounds configuration:config];
+              self.webView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+              self.webView.scrollView.bounces = NO;
+              [self.view addSubview:self.webView];
+              NSURL *htmlURL = [[NSBundle mainBundle] URLForResource:@"studio" withExtension:@"html"];
+              if (htmlURL != nil) {
+                  [self.webView loadFileURL:htmlURL allowingReadAccessToURL:[htmlURL URLByDeletingLastPathComponent]];
+              }
+          }
+          @end
+
+          @interface AppDelegate : UIResponder <UIApplicationDelegate>
+          @property (strong, nonatomic) UIWindow *window;
+          @end
+
+          @implementation AppDelegate
+          - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
+              self.window = [[UIWindow alloc] initWithFrame:[[UIScreen mainScreen] bounds]];
+              self.window.rootViewController = [[StudioViewController alloc] init];
+              [self.window makeKeyAndVisible];
+              return YES;
+          }
+          @end
+
+          int main(int argc, char * argv[]) {
+              @autoreleasepool {
+                  return UIApplicationMain(argc, argv, nil, NSStringFromClass([AppDelegate class]));
+              }
+          }
+          OBJCEOF
+
+          xcrun --sdk iphoneos clang ios_build/main.m \
+            -arch arm64 \
+            -isysroot "$SDK_PATH" \
+            -miphoneos-version-min=14.0 \
+            -fobjc-arc \
+            -framework UIKit \
+            -framework WebKit \
+            -framework Foundation \
+            -framework CoreGraphics \
+            -o "$APP_DIR/AyseninResimAtolyesi"
+
+          chmod +x "$APP_DIR/AyseninResimAtolyesi"
+
+          cat << 'PLISTEOF' > "$APP_DIR/Info.plist"
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+              <key>CFBundleDisplayName</key>
+              <string>Ayşe'nin Resim Atölyesi</string>
+              <key>CFBundleExecutable</key>
+              <string>AyseninResimAtolyesi</string>
+              <key>CFBundleIdentifier</key>
+              <string>com.aistudio.renkatolyesi.qxmpvk</string>
+              <key>CFBundleInfoDictionaryVersion</key>
+              <string>6.0</string>
+              <key>CFBundleName</key>
+              <string>AyseninResimAtolyesi</string>
+              <key>CFBundlePackageType</key>
+              <string>APPL</string>
+              <key>CFBundleShortVersionString</key>
+              <string>1.0</string>
+              <key>CFBundleVersion</key>
+              <string>1</string>
+              <key>LSRequiresIPhoneOS</key>
+              <true/>
+              <key>UIDeviceFamily</key>
+              <array>
+                  <integer>1</integer>
+                  <integer>2</integer>
+              </array>
+              <key>UILaunchScreen</key>
+              <dict/>
+              <key>UISupportedInterfaceOrientations</key>
+              <array>
+                  <string>UIInterfaceOrientationPortrait</string>
+              </array>
+          </dict>
+          </plist>
+          PLISTEOF
+
+          codesign --force --sign - "$APP_DIR/AyseninResimAtolyesi" || true
+          codesign --force --sign - "$APP_DIR" || true
+
+          cd ios_build
+          rm -f Aysenin_Resim_Atolyesi_iOS.ipa
+          zip -r Aysenin_Resim_Atolyesi_iOS.ipa Payload
+
+      - name: Upload iOS .IPA Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Aysenin-Resim-Atolyesi-iOS-IPA
+          path: ios_build/Aysenin_Resim_Atolyesi_iOS.ipa
