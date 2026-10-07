@@ -25,7 +25,7 @@ abstract class StudioDatabase : RoomDatabase() {
                     StudioDatabase::class.java,
                     "renk_atolyesi_studio.db"
                 )
-                    .fallbackToDestructiveMigration(true)
+                    .fallbackToDestructiveMigration()
                     .build()
                 INSTANCE = instance
                 instance
